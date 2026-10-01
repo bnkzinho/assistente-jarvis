@@ -193,9 +193,28 @@ def abrir_tela():
     subprocess.run(["open", url])
 
 
+def tocar_musica_abertura():
+    # Opcional — só roda se SPOTIFY_URI_ABERTURA estiver no .env. Abre o
+    # Spotify, toca a faixa, e pula pro meio dela (calcula a duração de
+    # verdade da música, não é um tempo fixo chutado).
+    uri = os.environ.get("SPOTIFY_URI_ABERTURA", "").strip()
+    if not uri:
+        return
+    subprocess.run(["osascript", "-e", f'''
+    tell application "Spotify"
+      activate
+      play track "{uri}"
+      delay 2
+      set trackDuration to duration of current track
+      set player position to (trackDuration / 1000 / 2)
+    end tell
+    '''])
+
+
 def main():
     print("Márcia (Mac) — aperta Enter pra falar com ela. Ctrl+C pra sair.\n")
     abrir_tela()
+    tocar_musica_abertura()
     while True:
         try:
             input("Aperta Enter pra gravar...")

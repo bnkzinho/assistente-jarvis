@@ -55,8 +55,7 @@ por um banco de verdade depois é simples, sem mexer em mais nada.
 cd mac
 pip install -r requirements.txt
 cp .env.example .env
-# edita o .env: BACKEND_URL (a URL do passo 1), JARVIS_SECRET (a mesma senha),
-# e OPENAI_API_KEY (veja abaixo)
+# edita o .env: BACKEND_URL (a URL do passo 1) e JARVIS_SECRET (a mesma senha)
 python3 jarvis.py
 ```
 
@@ -67,11 +66,12 @@ Aperta Enter, fala, aperta Enter de novo — ela responde em voz. Ao
 iniciar, já abre sozinha a **tela animada** dela no navegador (veja a
 seção "A tela" mais abaixo).
 
-**Por que precisa de uma chave da OpenAI também:** a Claude não transcreve
-áudio — só texto. O Whisper (OpenAI) faz só essa parte (ouvir e virar
-texto); quem responde de verdade continua sendo a Claude, lá no backend.
-Pega a chave em [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-— custa centavos por minuto de áudio.
+**Como ela transcreve sua voz:** usa o reconhecimento de voz gratuito do
+Google (biblioteca `SpeechRecognition`) — sem chave, sem cadastro, sem
+custo. A qualidade é um pouco abaixo do Whisper da OpenAI pra frases
+complexas, mas funciona bem pra comandos do dia a dia. Quem responde de
+verdade continua sendo a Claude, lá no backend — isso só transforma sua
+voz em texto antes de mandar pra ela.
 
 **Pra abrir só falando "Ei Siri, abre Márcia" (sem rodar o jarvis.py):**
 o Mac também tem Atalhos/Siri, igual o iPhone.

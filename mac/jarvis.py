@@ -3,9 +3,9 @@
 Márcia — cliente de voz pro Mac.
 
 Aperta Enter pra começar a gravar, fala, aperta Enter de novo pra parar.
-O áudio vira texto (Whisper da OpenAI), o texto vai pro backend (que
-pergunta pra Claude), e a resposta é falada em voz alta com o comando
-`say` do próprio macOS.
+O áudio vira texto (reconhecimento de voz gratuito do Google, sem chave
+nem cadastro), o texto vai pro backend (que pergunta pra Claude), e a
+resposta é falada em voz alta com o comando `say` do próprio macOS.
 
 Requisitos (uma vez só) — tudo via pip, sem precisar de Homebrew:
   pip install -r requirements.txt
@@ -23,13 +23,13 @@ import wave
 import numpy as np
 import requests
 import sounddevice as sd
+import speech_recognition as sr
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BACKEND_URL = os.environ.get("BACKEND_URL", "").rstrip("/")
 JARVIS_SECRET = os.environ.get("JARVIS_SECRET", "")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 VOZ = os.environ.get("JARVIS_VOZ", "Luciana")  # voz em pt-BR já instalada no macOS
 ESPERA_WHATSAPP_SEGUNDOS = float(os.environ.get("ESPERA_WHATSAPP_SEGUNDOS", "3.5"))
 ESPERA_RSA_ABRIR_SEGUNDOS = float(os.environ.get("ESPERA_RSA_ABRIR_SEGUNDOS", "2"))
@@ -37,8 +37,6 @@ ESPERA_RSA_PASSO_SEGUNDOS = float(os.environ.get("ESPERA_RSA_PASSO_SEGUNDOS", "0
 
 if not BACKEND_URL:
     sys.exit("Falta BACKEND_URL no .env — veja .env.example.")
-if not OPENAI_API_KEY:
-    sys.exit("Falta OPENAI_API_KEY no .env (usada só pra transcrever o áudio) — veja .env.example.")
 
 
 def falar(texto):
@@ -69,16 +67,18 @@ def gravar_audio(caminho_wav):
 
 
 def transcrever(caminho_wav):
-    with open(caminho_wav, "rb") as f:
-        resp = requests.post(
-            "https://api.openai.com/v1/audio/transcriptions",
-            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
-            files={"file": (os.path.basename(caminho_wav), f, "audio/wav")},
-            data={"model": "whisper-1", "language": "pt"},
-            timeout=60,
-        )
-    resp.raise_for_status()
-    return resp.json()["text"].strip()
+    # Reconhecimento de voz gratuito do Google (via lib SpeechRecognition)
+    # — sem chave, sem cadastro, sem custo. Qualidade um pouco abaixo do
+    # Whisper pra frases complexas, mas funciona bem pra comandos do dia
+    # a dia. Se não entender nada, devolve string vazia (tratado como
+    # "tenta de novo" lá no laço principal).
+    reconhecedor = sr.Recognizer()
+    with sr.AudioFile(caminho_wav) as fonte:
+        audio = reconhecedor.record(fonte)
+    try:
+        return reconhecedor.recognize_google(audio, language="pt-BR").strip()
+    except sr.UnknownValueError:
+        return ""
 
 
 def perguntar_jarvis(texto):
@@ -256,6 +256,8 @@ def main():
             executar_acoes(acoes)
         except requests.HTTPError as err:
             print(f"Erro de rede: {err}")
+        except sr.RequestError as err:
+            print(f"Erro no serviço de reconhecimento de voz: {err} — tenta de novo.")
         finally:
             os.remove(caminho)
 

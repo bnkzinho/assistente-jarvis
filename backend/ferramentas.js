@@ -60,7 +60,7 @@ export const FERRAMENTAS = [
   },
   {
     name: 'abrir_whatsapp',
-    description: 'Deixa uma mensagem pronta no WhatsApp (Mac ou iPhone, o que o usuário estiver usando), já escrita, pra ele só conferir e apertar enviar — NÃO manda sozinha, é só um atalho. Use quando o usuário pedir pra mandar/escrever mensagem no WhatsApp pra alguém. Sempre confirme o número de telefone e o texto da mensagem antes de chamar (se ele só der um nome, sem número, pergunte o número — ainda não existe agenda de contatos).',
+    description: 'Manda uma mensagem no WhatsApp pro número informado. No Mac ela é enviada de verdade, sozinha (sem precisar de mais nenhum toque). No iPhone (ou em qualquer outro dispositivo que não seja o Mac) ela só deixa a mensagem pronta, escrita, pro usuário conferir e apertar enviar — isso é uma limitação do iPhone, não escolha sua, então não prometa envio automático se o dispositivo não for "mac". Como no Mac o envio é IRREVERSÍVEL e automático, SEMPRE confirme o número de telefone e o texto exatos com o usuário antes de chamar essa ferramenta (se ele só der um nome, sem número, pergunte o número — ainda não existe agenda de contatos).',
     input_schema: {
       type: 'object',
       properties: {
@@ -81,9 +81,7 @@ function normalizarTelefone(numero) {
 // acaoLocal, quando existe (hoje só em abrir_whatsapp — o servidor não
 // tem como abrir nada na tela de ninguém, só o Mac/iPhone conseguem),
 // é repassado pro dispositivo no JSON de resposta, pra ele executar.
-// acaoLocal (quando existe) é o que o server.js repassa pro dispositivo
-// executar.
-export async function executarFerramenta(nome, input) {
+export async function executarFerramenta(nome, input, dispositivo) {
   switch (nome) {
     case 'criar_nota': {
       const nota = criarNota(input.texto)
@@ -118,9 +116,15 @@ export async function executarFerramenta(nome, input) {
     case 'abrir_whatsapp': {
       const telefone = normalizarTelefone(input.telefone)
       const url = `https://wa.me/${telefone}?text=${encodeURIComponent(input.mensagem)}`
+      // No Mac ela aperta enviar sozinha (o cliente Mac sabe fazer isso);
+      // no iPhone (e em qualquer outro dispositivo) só deixa pronto, porque
+      // os Atalhos da Siri não têm como simular um toque no botão Enviar.
+      const texto = dispositivo === 'mac'
+        ? 'Prontinho, já mandei no WhatsApp.'
+        : 'Deixei a mensagem pronta no WhatsApp — é só conferir e apertar enviar.'
       return {
-        texto: 'Deixei a mensagem pronta no WhatsApp — é só conferir e apertar enviar.',
-        acaoLocal: { tipo: 'abrir_url', url },
+        texto,
+        acaoLocal: { tipo: 'whatsapp', telefone, mensagem: input.mensagem, url },
       }
     }
     default:

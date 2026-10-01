@@ -59,7 +59,7 @@ function textoFinal(blocosDeConteudo) {
 // se algo der errado. Além do texto final, junta as "ações locais" que
 // o dispositivo (Mac/iPhone) precisa executar (ex: abrir uma URL do
 // WhatsApp) — o servidor não tem como fazer isso sozinho.
-async function responderComFerramentas(historico) {
+async function responderComFerramentas(historico, dispositivo) {
   const acoes = []
 
   for (let rodada = 0; rodada < MAX_RODADAS_FERRAMENTA; rodada++) {
@@ -82,7 +82,7 @@ async function responderComFerramentas(historico) {
     for (const chamada of chamadas) {
       let saida
       try {
-        saida = await executarFerramenta(chamada.name, chamada.input)
+        saida = await executarFerramenta(chamada.name, chamada.input, dispositivo)
       } catch (err) {
         saida = { texto: `Erro ao executar: ${err.message}` }
       }
@@ -116,7 +116,7 @@ app.post('/falar', async (req, res) => {
   historico.push({ role: 'user', content: texto })
 
   try {
-    const { texto: textoResposta, acoes } = await responderComFerramentas(historico)
+    const { texto: textoResposta, acoes } = await responderComFerramentas(historico, dispositivo)
     while (historico.length > HISTORICO_MAX) historico.shift()
     res.json({ resposta: textoResposta, acoes })
   } catch (err) {

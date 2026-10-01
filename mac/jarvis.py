@@ -17,6 +17,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.parse
 
 import requests
 from dotenv import load_dotenv
@@ -27,6 +29,7 @@ BACKEND_URL = os.environ.get("BACKEND_URL", "").rstrip("/")
 JARVIS_SECRET = os.environ.get("JARVIS_SECRET", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 VOZ = os.environ.get("JARVIS_VOZ", "Luciana")  # voz em pt-BR já instalada no macOS
+ESPERA_WHATSAPP_SEGUNDOS = float(os.environ.get("ESPERA_WHATSAPP_SEGUNDOS", "3.5"))
 
 if not BACKEND_URL:
     sys.exit("Falta BACKEND_URL no .env — veja .env.example.")
@@ -71,12 +74,35 @@ def perguntar_jarvis(texto):
     return corpo["resposta"], corpo.get("acoes") or []
 
 
+def enviar_whatsapp_mac(telefone, mensagem):
+    # whatsapp:// abre o app Desktop do WhatsApp direto na conversa já
+    # com o texto digitado (mais confiável que o link wa.me pra isso,
+    # que pode cair no navegador em vez do app). Depois de dar um tempo
+    # pra carregar, simula a tecla Enter de verdade com o "System
+    # Events" do macOS — a MESMA coisa que você apertar Enter na mão.
+    #
+    # Na primeira vez, o macOS vai pedir permissão de Acessibilidade
+    # pro Terminal (ou o app que estiver rodando este script) controlar
+    # outros aplicativos — sem isso o envio automático não funciona,
+    # mas o resto da Márcia continua normal.
+    url = f"whatsapp://send?phone={telefone}&text={urllib.parse.quote(mensagem)}"
+    subprocess.run(["open", url])
+    time.sleep(ESPERA_WHATSAPP_SEGUNDOS)
+    subprocess.run([
+        "osascript",
+        "-e", 'tell application "WhatsApp" to activate',
+        "-e", 'tell application "System Events" to keystroke return',
+    ])
+
+
 def executar_acoes(acoes):
-    # Hoje só existe "abrir_url" (ex: WhatsApp com a mensagem pronta,
-    # pra você conferir e enviar) — `open` é o comando nativo do macOS
-    # que abre qualquer link com o app certo, igual dar dois cliques.
     for acao in acoes:
-        if acao.get("tipo") == "abrir_url" and acao.get("url"):
+        tipo = acao.get("tipo")
+        if tipo == "whatsapp" and acao.get("telefone") and acao.get("mensagem"):
+            enviar_whatsapp_mac(acao["telefone"], acao["mensagem"])
+        elif tipo == "abrir_url" and acao.get("url"):
+            # `open` é o comando nativo do macOS que abre qualquer link
+            # com o app certo, igual dar dois cliques.
             subprocess.run(["open", acao["url"]])
 
 

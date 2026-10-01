@@ -98,18 +98,23 @@ de verdade — não envia e-mail sozinha sem você falar "pode mandar".
 - Criar, listar e apagar notas
 - Agendar lembretes, com notificação push de verdade quando vencem
 - Mandar e-mail (com confirmação antes)
-- Deixar mensagem pronta no WhatsApp (ela escreve, você confere e envia —
-  veja o porquê de não mandar sozinha logo abaixo)
+- Mandar mensagem no WhatsApp: **no Mac, sozinha de verdade** (abre o
+  WhatsApp Desktop e aperta Enter); **no iPhone, deixa pronta** pra você
+  conferir e apertar enviar
 
-**Por que o WhatsApp não manda sozinho:** pra mandar de verdade sem você
-tocar em nada, precisaria automatizar o WhatsApp Web (tem até uma técnica
-já usada num outro projeto nosso, o Portal Parcelamento) — só que isso
-exige um navegador sempre aberto e logado, ou um serviço rodando o tempo
-todo com bastante memória. Como você falou pra não depender de servidor
-nenhum, o jeito que sobra sem servidor é esse: ela deixa tudo pronto com
-um link, e o toque final (apertar enviar) é seu. Dá pra automatizar o
-envio também depois, se um dia topar manter um Mac ligado sempre ou pagar
-um servidor pra isso.
+**Por que no iPhone ela não manda sozinha:** o app Atalhos (Siri) não tem
+nenhum jeito de simular um toque no botão Enviar — só o Mac permite isso,
+usando um recurso do próprio macOS (Acessibilidade) pra controlar o
+WhatsApp Desktop como se fosse você apertando Enter. Não é falta de
+esforço, é uma parede real do iPhone.
+
+**Permissão necessária no Mac (só na primeira vez):** quando ela tentar
+mandar a primeira mensagem, o macOS vai pedir permissão de
+**Acessibilidade** pro Terminal (ou o app que você usa pra rodar o
+`jarvis.py`) controlar outros aplicativos — sem autorizar isso, o
+WhatsApp abre mas não envia sozinho (segue funcionando o resto todo
+normal). Autoriza em **Ajustes do Sistema → Privacidade e Segurança →
+Acessibilidade**.
 
 **Ainda não tem — e por quê:**
 - **Disparar as automações do Painel BKO (Crivo, Portal Parcelamento):**

@@ -61,7 +61,9 @@ cp .env.example .env
 python3 jarvis.py
 ```
 
-Aperta Enter, fala, aperta Enter de novo — ela responde em voz.
+Aperta Enter, fala, aperta Enter de novo — ela responde em voz. Ao
+iniciar, já abre sozinha a **tela animada** dela no navegador (veja a
+seção "A tela" mais abaixo).
 
 **Por que precisa de uma chave da OpenAI também:** a Claude não transcreve
 áudio — só texto. O Whisper (OpenAI) faz só essa parte (ouvir e virar
@@ -69,10 +71,33 @@ texto); quem responde de verdade continua sendo a Claude, lá no backend.
 Pega a chave em [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 — custa centavos por minuto de áudio.
 
+**Pra abrir só falando "Ei Siri, abre Márcia" (sem rodar o jarvis.py):**
+o Mac também tem Atalhos/Siri, igual o iPhone.
+1. Abre o app **Atalhos** no Mac → novo atalho → renomeia pra **Abrir Márcia**.
+2. Adiciona a ação **Abrir URLs**, com a URL:
+   `SEU-BACKEND.onrender.com/tela?backend=https://SEU-BACKEND.onrender.com&chave=SUA_JARVIS_SECRET`
+3. Nas configurações do atalho, liga "Adicionar à Siri" e grava a frase "Márcia".
+
+Isso só abre a tela (mostra o que ela disse por último, se o `jarvis.py`
+estiver rodando em algum lugar) — pra realmente FALAR com ela por voz
+ainda precisa do `jarvis.py` rodando (é ele que grava e transcreve o
+áudio).
+
 ## 3. Configurar o iPhone
 
 Veja o passo a passo em [`ios/README.md`](ios/README.md) — é só montar um
 Atalho, sem instalar nada. A frase pra chamar é "Ei Siri, Márcia".
+
+## A tela animada
+
+`backend/tela/index.html` — uma página com um "orbe" azul pulsante (estilo
+holograma), o que você falou e a resposta dela, e os ícones do que ela
+sabe fazer (notas, lembretes, e-mail, WhatsApp, Painel BKO). Servida pelo
+próprio backend, sem publicar nada à parte: `SEU-BACKEND.onrender.com/tela`.
+
+Na primeira vez que abrir direto (sem vir do `jarvis.py` ou do Atalho
+"Abrir Márcia"), ela pergunta a URL do backend e a chave — só uma vez,
+fica guardado no navegador. Atualiza sozinha a cada 2 segundos.
 
 ## 4. Notificação de lembrete no celular (ntfy)
 
@@ -129,6 +154,9 @@ verdade.
 - RSA + P2B (só no Mac): abre o app RSA, tenta selecionar a matrícula
   falada, copia o código gerado, e abre o login do P2B — **melhor
   esforço** (veja o aviso logo abaixo)
+- Uma tela animada (orbe pulsante) mostrando o que ela ouviu/respondeu,
+  servida pelo próprio backend em `/tela` — abre sozinha com o `jarvis.py`,
+  ou via "Ei Siri, Márcia" no Mac (veja a seção "A tela animada")
 
 **Por que no iPhone ela não manda sozinha:** o app Atalhos (Siri) não tem
 nenhum jeito de simular um toque no botão Enviar — só o Mac permite isso,

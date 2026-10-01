@@ -1,9 +1,13 @@
 import 'dotenv/config'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import express from 'express'
 import cors from 'cors'
 import Anthropic from '@anthropic-ai/sdk'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas.js'
 import { iniciarChecadorDeLembretes } from './lembretes.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const PORT = process.env.PORT || 3000
 const JARVIS_SECRET = process.env.JARVIS_SECRET
@@ -57,6 +61,11 @@ function pegarHistorico(dispositivo) {
   if (!historicos.has(dispositivo)) historicos.set(dispositivo, [])
   return historicos.get(dispositivo)
 }
+
+// Guarda só a ÚLTIMA troca (pergunta + resposta) de cada dispositivo —
+// separado do histórico "cru" da Claude — pra tela (tela/index.html)
+// poder mostrar o que ela acabou de dizer sem expor a conversa inteira.
+const ultimasMensagens = new Map()
 
 function textoFinal(blocosDeConteudo) {
   return blocosDeConteudo
@@ -131,12 +140,25 @@ app.post('/falar', async (req, res) => {
   try {
     const { texto: textoResposta, acoes } = await responderComFerramentas(historico, dispositivo)
     while (historico.length > HISTORICO_MAX) historico.shift()
+    ultimasMensagens.set(dispositivo, { texto, resposta: textoResposta, quando: new Date().toISOString() })
     res.json({ resposta: textoResposta, acoes })
   } catch (err) {
     console.error('Erro ao chamar a Claude:', err)
     res.status(500).json({ erro: 'falha ao gerar resposta' })
   }
 })
+
+app.get('/ultima-mensagem', (req, res) => {
+  if (JARVIS_SECRET && req.get('x-jarvis-key') !== JARVIS_SECRET) {
+    return res.status(401).json({ erro: 'chave inválida' })
+  }
+  const dispositivo = req.query.dispositivo || 'desconhecido'
+  res.json(ultimasMensagens.get(dispositivo) || {})
+})
+
+// Serve a tela animada (tela/index.html) direto do backend — abre em
+// qualquer navegador, sem precisar publicar nada à parte.
+app.use('/tela', express.static(path.join(__dirname, 'tela')))
 
 iniciarChecadorDeLembretes()
 

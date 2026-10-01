@@ -185,8 +185,17 @@ def executar_acoes(acoes):
             subprocess.run(["open", acao["url"]])
 
 
+def abrir_tela():
+    # Abre a tela animada (backend/tela/index.html, servida pelo próprio
+    # backend em /tela) no navegador padrão, já passando a URL e a chave
+    # pela query string — ela salva sozinha e não pergunta de novo.
+    url = f"{BACKEND_URL}/tela?backend={urllib.parse.quote(BACKEND_URL)}&chave={urllib.parse.quote(JARVIS_SECRET)}"
+    subprocess.run(["open", url])
+
+
 def main():
     print("Márcia (Mac) — aperta Enter pra falar com ela. Ctrl+C pra sair.\n")
+    abrir_tela()
     while True:
         try:
             input("Aperta Enter pra gravar...")

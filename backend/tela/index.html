@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Márcia</title>
+<style>
+  :root {
+    --azul: #4fc3ff;
+    --azul-forte: #8fe0ff;
+    --fundo: #05070d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(79,195,255,.08), transparent 60%),
+      var(--fundo);
+    color: var(--azul-forte);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .cena {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- título ---------- */
+  .titulo {
+    position: absolute;
+    top: 36px;
+    left: 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .titulo .anel {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--azul);
+    box-shadow: 0 0 14px rgba(79,195,255,.6), inset 0 0 10px rgba(79,195,255,.4);
+    animation: girar 6s linear infinite;
+  }
+  .titulo h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 4px;
+  }
+  .titulo p {
+    margin: 0;
+    font-size: 10px;
+    letter-spacing: 3px;
+    opacity: .55;
+  }
+
+  /* ---------- status (esquerda) ---------- */
+  .status {
+    position: absolute;
+    left: 40px;
+    top: 130px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    opacity: .75;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .status span { position: relative; padding-left: 14px; }
+  .status span::before {
+    content: ''; position: absolute; left: 0; top: 4px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--azul); box-shadow: 0 0 8px var(--azul);
+  }
+
+  /* ---------- painel de recursos (direita) ---------- */
+  .recursos {
+    position: absolute;
+    right: 40px;
+    top: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    opacity: .85;
+  }
+  .recursos .item { display: flex; align-items: center; gap: 10px; }
+  .recursos svg { width: 16px; height: 16px; stroke: var(--azul); }
+
+  /* ---------- o orbe ---------- */
+  .orbe-wrap {
+    position: relative;
+    width: 260px;
+    height: 260px;
+  }
+  .orbe {
+    position: absolute;
+    inset: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(190,235,255,.9), rgba(79,195,255,.35) 55%, rgba(79,195,255,.05) 75%);
+    box-shadow:
+      0 0 40px rgba(79,195,255,.55),
+      0 0 90px rgba(79,195,255,.25),
+      inset 0 0 30px rgba(255,255,255,.25);
+    animation: respirar 3.2s ease-in-out infinite;
+  }
+  .anel-orbe {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(79,195,255,.45);
+  }
+  .anel-orbe.a1 { animation: pulso 2.6s ease-out infinite; }
+  .anel-orbe.a2 { animation: pulso 2.6s 1.3s ease-out infinite; }
+
+  .orbe-wrap.falando .orbe { animation: respirar 0.7s ease-in-out infinite; }
+  .orbe-wrap.falando .anel-orbe.a1 { animation: pulso 1s ease-out infinite; }
+  .orbe-wrap.falando .anel-orbe.a2 { animation: pulso 1s .5s ease-out infinite; }
+
+  @keyframes respirar {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+  @keyframes pulso {
+    0% { transform: scale(.7); opacity: .6; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  @keyframes girar {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* ---------- balão de fala ---------- */
+  .fala {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 560px;
+    width: 90%;
+    background: rgba(10, 20, 35, .55);
+    border: 1px solid rgba(79,195,255,.35);
+    border-radius: 14px;
+    padding: 16px 20px;
+    backdrop-filter: blur(6px);
+    font-size: 15px;
+    line-height: 1.5;
+    opacity: 0;
+    transition: opacity .4s ease, transform .4s ease;
+  }
+  .fala.visivel { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .fala .voce { opacity: .55; font-size: 12px; letter-spacing: 1px; margin-bottom: 4px; }
+  .fala .dela { color: #fff; }
+
+  .config {
+    position: absolute;
+    right: 40px;
+    bottom: 36px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    opacity: .35;
+    cursor: pointer;
+    user-select: none;
+  }
+  .config:hover { opacity: .8; }
+</style>
+</head>
+<body>
+  <div class="cena">
+    <div class="titulo">
+      <div class="anel"></div>
+      <div>
+        <h1>MÁRCIA</h1>
+        <p>ASSISTENTE PESSOAL</p>
+      </div>
+    </div>
+
+    <div class="status">
+      <span id="status-ligacao">conectando…</span>
+      <span>sistemas online</span>
+      <span>pronta pra ajudar</span>
+    </div>
+
+    <div class="recursos">
+      <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg> notas</div>
+      <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> lembretes</div>
+      <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg> e-mail</div>
+      <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 12a9 9 0 1 1-4-7.5"/><path d="M21 3v6h-6"/></svg> whatsapp</div>
+      <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg> painel bko</div>
+    </div>
+
+    <div class="orbe-wrap" id="orbe">
+      <div class="anel-orbe a1"></div>
+      <div class="anel-orbe a2"></div>
+      <div class="orbe"></div>
+    </div>
+
+    <div class="fala" id="fala">
+      <div class="voce" id="fala-voce"></div>
+      <div class="dela" id="fala-dela">Tudo pronto. Como posso ajudar hoje?</div>
+    </div>
+
+    <div class="config" id="config">configurar conexão</div>
+  </div>
+
+<script>
+  // Página estática simples, sem build — guarda a URL do backend e a
+  // chave (JARVIS_SECRET) no localStorage do navegador, pergunta só na
+  // primeira vez (ou quando clicar em "configurar conexão").
+  function pedirConfig() {
+    const url = prompt('URL do backend (ex: https://marcia-xxxx.onrender.com)', localStorage.getItem('marcia_backend') || '')
+    if (url === null) return
+    const chave = prompt('Chave (a mesma JARVIS_SECRET do backend)', localStorage.getItem('marcia_chave') || '')
+    if (chave === null) return
+    localStorage.setItem('marcia_backend', url.trim().replace(/\/$/, ''))
+    localStorage.setItem('marcia_chave', chave.trim())
+  }
+
+  document.getElementById('config').addEventListener('click', pedirConfig)
+
+  // Se abriu com ?backend=...&chave=... na URL (o jarvis.py do Mac abre
+  // assim), salva direto — evita o prompt manual na primeira vez.
+  const parametros = new URLSearchParams(location.search)
+  if (parametros.get('backend')) localStorage.setItem('marcia_backend', parametros.get('backend'))
+  if (parametros.get('chave')) localStorage.setItem('marcia_chave', parametros.get('chave'))
+
+  if (!localStorage.getItem('marcia_backend')) pedirConfig()
+
+  const orbe = document.getElementById('orbe')
+  const fala = document.getElementById('fala')
+  const falaVoce = document.getElementById('fala-voce')
+  const falaDela = document.getElementById('fala-dela')
+  const statusLigacao = document.getElementById('status-ligacao')
+
+  let ultimaRespostaMostrada = ''
+
+  async function atualizar() {
+    const backend = localStorage.getItem('marcia_backend')
+    const chave = localStorage.getItem('marcia_chave')
+    if (!backend) return
+
+    try {
+      const resp = await fetch(`${backend}/ultima-mensagem?dispositivo=mac`, {
+        headers: { 'x-jarvis-key': chave || '' },
+      })
+      if (!resp.ok) throw new Error('resposta ' + resp.status)
+      const dados = await resp.json()
+      statusLigacao.textContent = 'conectada'
+
+      if (dados.resposta && dados.resposta !== ultimaRespostaMostrada) {
+        ultimaRespostaMostrada = dados.resposta
+        falaVoce.textContent = dados.texto ? `você: ${dados.texto}` : ''
+        falaDela.textContent = dados.resposta
+        fala.classList.add('visivel')
+
+        orbe.classList.add('falando')
+        setTimeout(() => orbe.classList.remove('falando'), 2500)
+      }
+    } catch (err) {
+      statusLigacao.textContent = 'sem conexão'
+    }
+  }
+
+  setInterval(atualizar, 2000)
+  atualizar()
+</script>
+</body>
+</html>

@@ -106,8 +106,12 @@ não é só consulta. Não compartilha esse `.env`/essas variáveis do Render
 com mais ninguém, e troca a senha se algum dia desconfiar que vazou.
 
 As ações disponíveis hoje: ver contestações pendentes, aprovar/recusar
-uma, ver o ranking, e listar cust codes por status. Ela sempre confirma
-qual contestação e qual decisão antes de executar de verdade.
+uma, ver o ranking, listar cust codes por status, ver o progresso de
+reagendamento da equipe, listar os BKOs, e disparar uma consulta de CNPJ
+no Crivo (precisa ter algum computador da equipe com a extensão Crivo
+ativa numa aba do Easy Vendas, senão ela fica esperando sem resposta).
+Ela sempre confirma qual contestação e qual decisão antes de executar de
+verdade.
 
 ## O que já dá pra fazer / o que falta
 
@@ -120,7 +124,8 @@ qual contestação e qual decisão antes de executar de verdade.
   WhatsApp Desktop e aperta Enter); **no iPhone, deixa pronta** pra você
   conferir e apertar enviar
 - Painel BKO: ver contestações pendentes, aprovar/recusar (com
-  confirmação antes), ver ranking, listar cust codes
+  confirmação antes), ver ranking, listar cust codes, ver reagendamentos
+  da equipe, listar BKOs, disparar consulta de CNPJ no Crivo
 
 **Por que no iPhone ela não manda sozinha:** o app Atalhos (Siri) não tem
 nenhum jeito de simular um toque no botão Enviar — só o Mac permite isso,
@@ -137,10 +142,10 @@ normal). Autoriza em **Ajustes do Sistema → Privacidade e Segurança →
 Acessibilidade**.
 
 **Ainda não tem — e por quê:**
-- **Mais ações no Painel BKO** (ex: reagendamentos, equipe, disparar
-  Crivo/Portal Parcelamento direto por voz): a conexão já existe agora —
-  cada uma dessas é só mais uma função em `painel-bko.js` + uma ferramenta
-  em `ferramentas.js`. Me fala quais você quer primeiro.
+- **Mais ações no Painel BKO** (ex: ativar/desativar um BKO, mudar a
+  planilha do Portal Parcelamento, editar comissão): a conexão já existe
+  — cada uma dessas é só mais uma função em `painel-bko.js` + uma
+  ferramenta em `ferramentas.js`. Me fala quais você quer primeiro.
 - **Modo "sempre ouvindo"** (sem precisar chamar "Ei Siri" nem apertar
   Enter): precisa de um app de verdade rodando em segundo plano nos dois
   aparelhos — é o passo natural depois que o resto estiver redondo.

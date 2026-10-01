@@ -23,6 +23,7 @@ const usernameToEmail = (username) => `${username.trim().toLowerCase()}@${EMAIL_
 
 let cliente = null
 let logado = false
+let usuarioId = null
 
 function pegarCliente() {
   if (!cliente) cliente = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -36,9 +37,10 @@ async function garantirLogin() {
     throw new Error('Painel BKO não configurado — falta PAINEL_BKO_USUARIO/PAINEL_BKO_SENHA no .env.')
   }
   if (logado) return
-  const { error } = await pegarCliente().auth.signInWithPassword({ email: usernameToEmail(usuario), password: senha })
+  const { data, error } = await pegarCliente().auth.signInWithPassword({ email: usernameToEmail(usuario), password: senha })
   if (error) throw new Error('Login no Painel BKO falhou — confere usuário/senha no .env.')
   logado = true
+  usuarioId = data.user.id
 }
 
 // Roda uma chamada ao Supabase já logada; se der erro de autenticação
@@ -97,4 +99,58 @@ export async function consultarCustCodes(status = 'pendente') {
   })
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function consultarReagendamentos() {
+  const { data, error } = await comLogin((db) =>
+    db
+      .from('profiles')
+      .select('name, performance(rescheduling_done, rescheduling_goal)')
+      .eq('role', 'bko')
+  )
+  if (error) throw new Error(error.message)
+  return data.map((p) => ({
+    nome: p.name,
+    feitos: p.performance?.rescheduling_done ?? 0,
+    meta: p.performance?.rescheduling_goal ?? 0,
+  }))
+}
+
+export async function consultarEquipe() {
+  const { data, error } = await comLogin((db) =>
+    db.from('profiles').select('id, name, username, active').eq('role', 'bko').order('name')
+  )
+  if (error) throw new Error(error.message)
+  return data
+}
+
+// Dispara uma consulta de CNPJ no Crivo (igual digitar na tela de
+// Aprovação do site) e espera um pouco pela resposta — quem responde de
+// verdade é a extensão Crivo rodando no Chrome de alguém, lendo os
+// sistemas do TIM, então só funciona se tiver uma aba logada nisso em
+// algum computador da equipe.
+export async function consultarCnpjCrivo(cnpj, segundosDeEspera = 15) {
+  const { data: inserido, error: erroInsert } = await comLogin((db) =>
+    db.from('crivo_consultas').insert({ cnpj, solicitado_por: usuarioId }).select('id').single()
+  )
+  if (erroInsert) throw new Error(erroInsert.message)
+
+  const inicio = Date.now()
+  while (Date.now() - inicio < segundosDeEspera * 1000) {
+    await new Promise((r) => setTimeout(r, 2000))
+    const { data: linha, error } = await comLogin((db) =>
+      db.from('crivo_consultas').select('status, sistema1_resultado, sistema2_resultado, erro_mensagem').eq('id', inserido.id).single()
+    )
+    if (error) throw new Error(error.message)
+    if (linha.status === 'concluido') {
+      // sistema1 "reprovado" já fecha sozinho (não espera sistema2) — fora
+      // isso, quem decide é o sistema2 (crivo de mercado, mais rigoroso).
+      const resultado = linha.sistema1_resultado === 'reprovado' ? 'reprovado' : linha.sistema2_resultado
+      return { pronto: true, resultado }
+    }
+    if (linha.status === 'erro') {
+      return { pronto: true, erro: linha.erro_mensagem }
+    }
+  }
+  return { pronto: false }
 }

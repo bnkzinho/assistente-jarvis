@@ -1,6 +1,14 @@
 import { criarNota, listarNotas, apagarNota, criarLembrete, listarLembretes } from './armazenamento.js'
 import { enviarEmail } from './email.js'
-import { listarContestacoesPendentes, decidirContestacao, consultarRanking, consultarCustCodes } from './painel-bko.js'
+import {
+  listarContestacoesPendentes,
+  decidirContestacao,
+  consultarRanking,
+  consultarCustCodes,
+  consultarReagendamentos,
+  consultarEquipe,
+  consultarCnpjCrivo,
+} from './painel-bko.js'
 
 // Formato que a Claude usa (Anthropic "tool use") — cada ferramenta tem
 // nome, descrição (é isso que ela lê pra decidir QUANDO usar) e o
@@ -104,6 +112,25 @@ export const FERRAMENTAS = [
       },
     },
   },
+  {
+    name: 'consultar_reagendamentos',
+    description: 'Consulta o progresso de reagendamento de cada BKO da equipe (feitos vs meta) no Painel BKO.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'consultar_equipe',
+    description: 'Lista os BKOs da equipe no Painel BKO (nome, usuário, se está ativo).',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'consultar_cnpj_crivo',
+    description: 'Dispara uma consulta de crédito (Crivo) pro CNPJ informado, igual digitar na tela de Aprovação do Painel BKO, e espera um pouco pela resposta. SÓ funciona se tiver algum computador da equipe com a extensão Crivo ativa numa aba do Easy Vendas — avise o usuário se der timeout (pronto=false) que pode ser isso. Confirme o CNPJ antes de chamar se não tiver certeza.',
+    input_schema: {
+      type: 'object',
+      properties: { cnpj: { type: 'string', description: 'só os números, 14 dígitos' } },
+      required: ['cnpj'],
+    },
+  },
 ]
 
 function normalizarTelefone(numero) {
@@ -186,6 +213,20 @@ export async function executarFerramenta(nome, input, dispositivo) {
       const lista = await consultarCustCodes(input.status)
       if (!lista.length) return { texto: 'Nenhum cust code encontrado com esse filtro.' }
       return { texto: lista.map((c) => `${c.cust_code} (${c.status})`).join(', ') }
+    }
+    case 'consultar_reagendamentos': {
+      const lista = await consultarReagendamentos()
+      return { texto: lista.map((r) => `${r.nome}: ${r.feitos} de ${r.meta}`).join('\n') }
+    }
+    case 'consultar_equipe': {
+      const lista = await consultarEquipe()
+      return { texto: lista.map((b) => `${b.name} (@${b.username}) — ${b.active ? 'ativo' : 'inativo'}`).join('\n') }
+    }
+    case 'consultar_cnpj_crivo': {
+      const resultado = await consultarCnpjCrivo(input.cnpj)
+      if (!resultado.pronto) return { texto: 'Mandei pra fila do Crivo, mas ainda não veio resposta — tenta perguntar de novo daqui a pouco.' }
+      if (resultado.erro) return { texto: `Deu erro no Crivo: ${resultado.erro}` }
+      return { texto: `Resultado do Crivo: ${resultado.resultado}.` }
     }
     default:
       return { texto: `Ferramenta desconhecida: ${nome}` }

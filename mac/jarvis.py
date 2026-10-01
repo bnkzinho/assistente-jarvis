@@ -7,8 +7,7 @@ O áudio vira texto (Whisper da OpenAI), o texto vai pro backend (que
 pergunta pra Claude), e a resposta é falada em voz alta com o comando
 `say` do próprio macOS.
 
-Requisitos (uma vez só):
-  brew install sox
+Requisitos (uma vez só) — tudo via pip, sem precisar de Homebrew:
   pip install -r requirements.txt
   cp .env.example .env   # e preenche as chaves
 """
@@ -19,8 +18,11 @@ import sys
 import tempfile
 import time
 import urllib.parse
+import wave
 
+import numpy as np
 import requests
+import sounddevice as sd
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -44,11 +46,26 @@ def falar(texto):
 
 
 def gravar_audio(caminho_wav):
+    # Grava com sounddevice (pip puro, sem precisar de Homebrew nem de
+    # nenhum programa externo) — acumula os pedaços de áudio num callback
+    # até apertar Enter de novo, depois salva como .wav com o módulo
+    # `wave` (já vem com o Python, não precisa instalar nada a mais).
     print("🎙️  Gravando... aperta Enter de novo pra parar.")
-    processo = subprocess.Popen(["rec", "-q", caminho_wav, "rate", "16k", "channels", "1"])
-    input()
-    processo.terminate()
-    processo.wait()
+    TAXA = 16000
+    pedacos = []
+
+    def callback(indata, frames_count, time_info, status):
+        pedacos.append(indata.copy())
+
+    with sd.InputStream(samplerate=TAXA, channels=1, dtype="int16", callback=callback):
+        input()
+
+    audio = np.concatenate(pedacos, axis=0) if pedacos else np.zeros((0, 1), dtype="int16")
+    with wave.open(caminho_wav, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)  # int16 = 2 bytes
+        wf.setframerate(TAXA)
+        wf.writeframes(audio.tobytes())
 
 
 def transcrever(caminho_wav):

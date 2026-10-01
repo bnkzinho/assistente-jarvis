@@ -53,13 +53,15 @@ por um banco de verdade depois é simples, sem mexer em mais nada.
 
 ```bash
 cd mac
-brew install sox
 pip install -r requirements.txt
 cp .env.example .env
 # edita o .env: BACKEND_URL (a URL do passo 1), JARVIS_SECRET (a mesma senha),
 # e OPENAI_API_KEY (veja abaixo)
 python3 jarvis.py
 ```
+
+(Não precisa de Homebrew — a gravação de áudio usa só bibliotecas Python,
+funciona em qualquer Mac, Intel ou Apple Silicon.)
 
 Aperta Enter, fala, aperta Enter de novo — ela responde em voz. Ao
 iniciar, já abre sozinha a **tela animada** dela no navegador (veja a

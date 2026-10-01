@@ -1,19 +1,21 @@
 # Márcia — assistente pessoal com voz
 
 Conversa por voz pelo Mac e pelo iPhone, guarda notas, agenda lembretes
-que notificam de verdade no celular, manda e-mail por você, e deixa
-mensagem pronta no WhatsApp.
+que notificam de verdade no celular, manda e-mail por você, deixa
+mensagem pronta no WhatsApp, e acessa o Painel BKO com o seu login de
+supervisor (ver contestações, aprovar/recusar, ranking, cust codes).
 
 ## Como funciona
 
 ```
 Mac (jarvis.py)  ──┐
                     ├──► backend (Node/Express) ──► Claude (com ferramentas:
-iPhone (Atalho)  ──┘      notas, lembretes, e-mail, WhatsApp) ──► resposta + ação
-                                     │                                  │
-                                     │                                  └──► Mac/iPhone abre o
-                                     │                                       link do WhatsApp
-                                     └──► lembrete vencido ──► ntfy.sh ──► notificação no celular/Mac
+iPhone (Atalho)  ──┘      notas, lembretes, e-mail,        ──► resposta + ação
+                           WhatsApp, Painel BKO)                   │
+                                     │                             └──► Mac/iPhone abre o
+                                     │                                  link do WhatsApp
+                                     ├──► lembrete vencido ──► ntfy.sh ──► notificação no celular/Mac
+                                     └──► login de supervisor ──► Supabase do Painel BKO
 ```
 
 Um backend só, publicado uma vez, atende os dois dispositivos. A Claude
@@ -38,6 +40,7 @@ Precisa de uma URL pública (o iPhone não alcança seu Mac local).
    - `CLAUDE_MODEL` — pode deixar `claude-sonnet-5`
    - `NTFY_TOPIC` — pra lembretes virarem notificação de verdade (veja passo 4 abaixo)
    - `EMAIL_USER` / `EMAIL_APP_PASSWORD` — pra ela poder mandar e-mail (veja passo 5)
+   - `PAINEL_BKO_USUARIO` / `PAINEL_BKO_SENHA` — pra ela acessar o Painel BKO (veja passo 6)
 5. Deploy. Guarda a URL que o Render te dá (tipo `https://marcia-xxxx.onrender.com`).
 
 **Sobre guardar notas e lembretes:** por enquanto fica num arquivo simples
@@ -91,6 +94,21 @@ mesmo com o app fechado.
 A Márcia sempre confirma destinatário e conteúdo com você antes de mandar
 de verdade — não envia e-mail sozinha sem você falar "pode mandar".
 
+## 6. Painel BKO (opcional)
+
+Coloca seu usuário e senha de supervisor do Painel BKO (os mesmos que você
+usa pra entrar no site) em `PAINEL_BKO_USUARIO` / `PAINEL_BKO_SENHA`, no
+backend (Render).
+
+**Importante:** isso dá pra Márcia o MESMO poder que você tem logado como
+supervisor — ela decide contestação (afeta comissão de alguém de verdade),
+não é só consulta. Não compartilha esse `.env`/essas variáveis do Render
+com mais ninguém, e troca a senha se algum dia desconfiar que vazou.
+
+As ações disponíveis hoje: ver contestações pendentes, aprovar/recusar
+uma, ver o ranking, e listar cust codes por status. Ela sempre confirma
+qual contestação e qual decisão antes de executar de verdade.
+
 ## O que já dá pra fazer / o que falta
 
 **Já funciona:**
@@ -101,6 +119,8 @@ de verdade — não envia e-mail sozinha sem você falar "pode mandar".
 - Mandar mensagem no WhatsApp: **no Mac, sozinha de verdade** (abre o
   WhatsApp Desktop e aperta Enter); **no iPhone, deixa pronta** pra você
   conferir e apertar enviar
+- Painel BKO: ver contestações pendentes, aprovar/recusar (com
+  confirmação antes), ver ranking, listar cust codes
 
 **Por que no iPhone ela não manda sozinha:** o app Atalhos (Siri) não tem
 nenhum jeito de simular um toque no botão Enviar — só o Mac permite isso,
@@ -117,10 +137,10 @@ normal). Autoriza em **Ajustes do Sistema → Privacidade e Segurança →
 Acessibilidade**.
 
 **Ainda não tem — e por quê:**
-- **Disparar as automações do Painel BKO (Crivo, Portal Parcelamento):**
-  tecnicamente dá, mas exigiria ou guardar o seu login do Painel BKO
-  aqui no backend, ou uma chave sensível do Supabase — não quis tomar
-  essa decisão por você.
+- **Mais ações no Painel BKO** (ex: reagendamentos, equipe, disparar
+  Crivo/Portal Parcelamento direto por voz): a conexão já existe agora —
+  cada uma dessas é só mais uma função em `painel-bko.js` + uma ferramenta
+  em `ferramentas.js`. Me fala quais você quer primeiro.
 - **Modo "sempre ouvindo"** (sem precisar chamar "Ei Siri" nem apertar
   Enter): precisa de um app de verdade rodando em segundo plano nos dois
   aparelhos — é o passo natural depois que o resto estiver redondo.

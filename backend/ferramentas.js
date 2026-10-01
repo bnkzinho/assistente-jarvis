@@ -1,5 +1,6 @@
 import { criarNota, listarNotas, apagarNota, criarLembrete, listarLembretes } from './armazenamento.js'
 import { enviarEmail } from './email.js'
+import { listarContestacoesPendentes, decidirContestacao, consultarRanking, consultarCustCodes } from './painel-bko.js'
 
 // Formato que a Claude usa (Anthropic "tool use") — cada ferramenta tem
 // nome, descrição (é isso que ela lê pra decidir QUANDO usar) e o
@@ -70,6 +71,39 @@ export const FERRAMENTAS = [
       required: ['telefone', 'mensagem'],
     },
   },
+  {
+    name: 'listar_contestacoes_pendentes',
+    description: 'Lista as contestações do Painel BKO (site da equipe) que estão esperando decisão do supervisor. Use quando o usuário perguntar o que tem pra aprovar/decidir.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'decidir_contestacao',
+    description: 'Aprova ("autorizada") ou recusa ("recusada") uma contestação no Painel BKO — ação de supervisor de verdade, afeta a meta/comissão de um BKO da equipe. SEMPRE confirme com o usuário qual contestação (mostre a lista antes se não tiver certeza do id) e a decisão exata antes de chamar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'id da contestação, obtido via listar_contestacoes_pendentes' },
+        status: { type: 'string', enum: ['autorizada', 'recusada'] },
+        motivo: { type: 'string', description: 'motivo da recusa (opcional, só faz sentido se status for recusada)' },
+      },
+      required: ['id', 'status'],
+    },
+  },
+  {
+    name: 'consultar_ranking',
+    description: 'Consulta o ranking de comissão da equipe no Painel BKO. Use quando o usuário perguntar quem tá na frente, como anda o ranking, etc.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'consultar_cust_codes',
+    description: 'Lista os Cust Codes de contestação no Painel BKO, filtrando por status.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['pendente', 'autorizada', 'recusada', 'all'], description: 'padrão: pendente' },
+      },
+    },
+  },
 ]
 
 function normalizarTelefone(numero) {
@@ -126,6 +160,32 @@ export async function executarFerramenta(nome, input, dispositivo) {
         texto,
         acaoLocal: { tipo: 'whatsapp', telefone, mensagem: input.mensagem, url },
       }
+    }
+    case 'listar_contestacoes_pendentes': {
+      const lista = await listarContestacoesPendentes()
+      if (!lista.length) return { texto: 'Não tem nenhuma contestação pendente.' }
+      return {
+        texto: lista
+          .map((c) => `[${c.id}] ${c.profiles?.name || '?'} — Cust Code ${c.cust_code}: ${c.observacao || '(sem observação)'}`)
+          .join('\n'),
+      }
+    }
+    case 'decidir_contestacao': {
+      await decidirContestacao(input.id, input.status, input.motivo)
+      return { texto: `Contestação ${input.status}.` }
+    }
+    case 'consultar_ranking': {
+      const ranking = await consultarRanking()
+      return {
+        texto: ranking
+          .map((r, i) => `${i + 1}º ${r.nome} — comissão R$ ${Number(r.commission || 0).toFixed(2)}`)
+          .join('\n'),
+      }
+    }
+    case 'consultar_cust_codes': {
+      const lista = await consultarCustCodes(input.status)
+      if (!lista.length) return { texto: 'Nenhum cust code encontrado com esse filtro.' }
+      return { texto: lista.map((c) => `${c.cust_code} (${c.status})`).join(', ') }
     }
     default:
       return { texto: `Ferramenta desconhecida: ${nome}` }

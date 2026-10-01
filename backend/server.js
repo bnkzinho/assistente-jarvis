@@ -2,10 +2,13 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import Anthropic from '@anthropic-ai/sdk'
+import { FERRAMENTAS, executarFerramenta } from './ferramentas.js'
+import { iniciarChecadorDeLembretes } from './lembretes.js'
 
 const PORT = process.env.PORT || 3000
 const JARVIS_SECRET = process.env.JARVIS_SECRET
 const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5'
+const MAX_RODADAS_FERRAMENTA = 4
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('ANTHROPIC_API_KEY não definida — configure no .env (veja .env.example).')
@@ -16,18 +19,25 @@ if (!JARVIS_SECRET) {
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM_PROMPT = `Você é a Márcia, assistente pessoal de voz do usuário.
+function montarSystemPrompt() {
+  const agora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full', timeStyle: 'short' })
+  return `Você é a Márcia, assistente pessoal de voz do usuário.
+Agora são: ${agora} (horário de Brasília).
+
 Suas respostas são LIDAS EM VOZ ALTA, então:
 - Nunca use markdown, listas numeradas, asteriscos ou formatação.
-- Seja direto e curto — 1 a 3 frases, a não ser que o pedido exija mais detalhe.
+- Seja direto e curta — 1 a 3 frases, a não ser que o pedido exija mais detalhe.
 - Fale em português do Brasil, num tom natural de conversa, não robótico.
 - Se não souber ou não conseguir fazer algo (ainda não tem essa ferramenta conectada),
-  diga isso claramente em vez de inventar.`
+  diga isso claramente em vez de inventar.
+- Use as ferramentas disponíveis sempre que o pedido for sobre notas, lembretes ou
+  e-mail — não finja que fez, chame a ferramenta de verdade.`
+}
 
 // Histórico em memória, por dispositivo — reseta se o servidor reiniciar.
-// Suficiente pro uso pessoal da v1; se precisar sobreviver a reinícios,
-// trocar por um banco (ex: Supabase) é o próximo passo natural.
-const HISTORICO_MAX = 12
+// Guarda os blocos "crus" (inclusive tool_use/tool_result), do jeito que
+// a API da Anthropic espera de volta numa próxima chamada.
+const HISTORICO_MAX = 20
 const historicos = new Map()
 
 function pegarHistorico(dispositivo) {
@@ -35,12 +45,56 @@ function pegarHistorico(dispositivo) {
   return historicos.get(dispositivo)
 }
 
+function textoFinal(blocosDeConteudo) {
+  return blocosDeConteudo
+    .filter((bloco) => bloco.type === 'text')
+    .map((bloco) => bloco.text)
+    .join(' ')
+    .trim()
+}
+
+// Deixa a Claude usar ferramentas em rodadas sucessivas (ex: criar um
+// lembrete, ver o resultado, só então responder em texto) até ela parar
+// de pedir ferramenta ou até o limite de rodadas — evita loop infinito
+// se algo der errado.
+async function responderComFerramentas(historico) {
+  for (let rodada = 0; rodada < MAX_RODADAS_FERRAMENTA; rodada++) {
+    const resposta = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 500,
+      system: montarSystemPrompt(),
+      tools: FERRAMENTAS,
+      messages: historico,
+    })
+
+    historico.push({ role: 'assistant', content: resposta.content })
+
+    if (resposta.stop_reason !== 'tool_use') {
+      return textoFinal(resposta.content)
+    }
+
+    const chamadas = resposta.content.filter((b) => b.type === 'tool_use')
+    const resultados = []
+    for (const chamada of chamadas) {
+      let saida
+      try {
+        saida = await executarFerramenta(chamada.name, chamada.input)
+      } catch (err) {
+        saida = `Erro ao executar: ${err.message}`
+      }
+      resultados.push({ type: 'tool_result', tool_use_id: chamada.id, content: saida })
+    }
+    historico.push({ role: 'user', content: resultados })
+  }
+  return 'Deu uma confusão tentando fazer isso em várias etapas — tenta de novo, mais direto?'
+}
+
 const app = express()
 app.use(cors())
 app.use(express.json())
 
 app.get('/', (_req, res) => {
-  res.json({ ok: true, servico: 'jarvis-backend' })
+  res.json({ ok: true, servico: 'marcia-backend' })
 })
 
 app.post('/falar', async (req, res) => {
@@ -57,28 +111,16 @@ app.post('/falar', async (req, res) => {
   historico.push({ role: 'user', content: texto })
 
   try {
-    const resposta = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 400,
-      system: SYSTEM_PROMPT,
-      messages: historico,
-    })
-
-    const textoResposta = resposta.content
-      .filter((bloco) => bloco.type === 'text')
-      .map((bloco) => bloco.text)
-      .join(' ')
-      .trim()
-
-    historico.push({ role: 'assistant', content: textoResposta })
+    const textoResposta = await responderComFerramentas(historico)
     while (historico.length > HISTORICO_MAX) historico.shift()
-
     res.json({ resposta: textoResposta })
   } catch (err) {
     console.error('Erro ao chamar a Claude:', err)
     res.status(500).json({ erro: 'falha ao gerar resposta' })
   }
 })
+
+iniciarChecadorDeLembretes()
 
 app.listen(PORT, () => {
   console.log(`Márcia (backend) rodando em http://localhost:${PORT}`)

@@ -1,5 +1,6 @@
 node_modules/
 .env
+backend/data/
 __pycache__/
 *.pyc
 .venv/

@@ -30,8 +30,8 @@ Suas respostas são LIDAS EM VOZ ALTA, então:
 - Fale em português do Brasil, num tom natural de conversa, não robótico.
 - Se não souber ou não conseguir fazer algo (ainda não tem essa ferramenta conectada),
   diga isso claramente em vez de inventar.
-- Use as ferramentas disponíveis sempre que o pedido for sobre notas, lembretes ou
-  e-mail — não finja que fez, chame a ferramenta de verdade.`
+- Use as ferramentas disponíveis sempre que o pedido for sobre notas, lembretes,
+  e-mail ou WhatsApp — não finja que fez, chame a ferramenta de verdade.`
 }
 
 // Histórico em memória, por dispositivo — reseta se o servidor reiniciar.
@@ -56,8 +56,12 @@ function textoFinal(blocosDeConteudo) {
 // Deixa a Claude usar ferramentas em rodadas sucessivas (ex: criar um
 // lembrete, ver o resultado, só então responder em texto) até ela parar
 // de pedir ferramenta ou até o limite de rodadas — evita loop infinito
-// se algo der errado.
+// se algo der errado. Além do texto final, junta as "ações locais" que
+// o dispositivo (Mac/iPhone) precisa executar (ex: abrir uma URL do
+// WhatsApp) — o servidor não tem como fazer isso sozinho.
 async function responderComFerramentas(historico) {
+  const acoes = []
+
   for (let rodada = 0; rodada < MAX_RODADAS_FERRAMENTA; rodada++) {
     const resposta = await anthropic.messages.create({
       model: MODEL,
@@ -70,7 +74,7 @@ async function responderComFerramentas(historico) {
     historico.push({ role: 'assistant', content: resposta.content })
 
     if (resposta.stop_reason !== 'tool_use') {
-      return textoFinal(resposta.content)
+      return { texto: textoFinal(resposta.content), acoes }
     }
 
     const chamadas = resposta.content.filter((b) => b.type === 'tool_use')
@@ -80,13 +84,14 @@ async function responderComFerramentas(historico) {
       try {
         saida = await executarFerramenta(chamada.name, chamada.input)
       } catch (err) {
-        saida = `Erro ao executar: ${err.message}`
+        saida = { texto: `Erro ao executar: ${err.message}` }
       }
-      resultados.push({ type: 'tool_result', tool_use_id: chamada.id, content: saida })
+      if (saida.acaoLocal) acoes.push(saida.acaoLocal)
+      resultados.push({ type: 'tool_result', tool_use_id: chamada.id, content: saida.texto })
     }
     historico.push({ role: 'user', content: resultados })
   }
-  return 'Deu uma confusão tentando fazer isso em várias etapas — tenta de novo, mais direto?'
+  return { texto: 'Deu uma confusão tentando fazer isso em várias etapas — tenta de novo, mais direto?', acoes }
 }
 
 const app = express()
@@ -111,9 +116,9 @@ app.post('/falar', async (req, res) => {
   historico.push({ role: 'user', content: texto })
 
   try {
-    const textoResposta = await responderComFerramentas(historico)
+    const { texto: textoResposta, acoes } = await responderComFerramentas(historico)
     while (historico.length > HISTORICO_MAX) historico.shift()
-    res.json({ resposta: textoResposta })
+    res.json({ resposta: textoResposta, acoes })
   } catch (err) {
     console.error('Erro ao chamar a Claude:', err)
     res.status(500).json({ erro: 'falha ao gerar resposta' })

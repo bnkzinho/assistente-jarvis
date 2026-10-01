@@ -1,21 +1,27 @@
 # Márcia — assistente pessoal com voz
 
 Conversa por voz pelo Mac e pelo iPhone, guarda notas, agenda lembretes
-que notificam de verdade no celular, e manda e-mail por você.
+que notificam de verdade no celular, manda e-mail por você, e deixa
+mensagem pronta no WhatsApp.
 
 ## Como funciona
 
 ```
 Mac (jarvis.py)  ──┐
                     ├──► backend (Node/Express) ──► Claude (com ferramentas:
-iPhone (Atalho)  ──┘      notas, lembretes, e-mail) ──► resposta
-                                     │
+iPhone (Atalho)  ──┘      notas, lembretes, e-mail, WhatsApp) ──► resposta + ação
+                                     │                                  │
+                                     │                                  └──► Mac/iPhone abre o
+                                     │                                       link do WhatsApp
                                      └──► lembrete vencido ──► ntfy.sh ──► notificação no celular/Mac
 ```
 
 Um backend só, publicado uma vez, atende os dois dispositivos. A Claude
 decide sozinha, pela conversa, quando precisa usar uma ferramenta (criar
-nota, agendar lembrete, mandar e-mail) em vez de só responder em texto.
+nota, agendar lembrete, mandar e-mail, abrir WhatsApp) em vez de só
+responder em texto. Pra WhatsApp, o backend nunca manda nada sozinho —
+ele só devolve um link pronto (`wa.me/...`), e quem abre esse link é o
+próprio Mac ou iPhone, que é quem tem o WhatsApp instalado de verdade.
 
 ## 1. Publicar o backend
 
@@ -92,14 +98,20 @@ de verdade — não envia e-mail sozinha sem você falar "pode mandar".
 - Criar, listar e apagar notas
 - Agendar lembretes, com notificação push de verdade quando vencem
 - Mandar e-mail (com confirmação antes)
+- Deixar mensagem pronta no WhatsApp (ela escreve, você confere e envia —
+  veja o porquê de não mandar sozinha logo abaixo)
+
+**Por que o WhatsApp não manda sozinho:** pra mandar de verdade sem você
+tocar em nada, precisaria automatizar o WhatsApp Web (tem até uma técnica
+já usada num outro projeto nosso, o Portal Parcelamento) — só que isso
+exige um navegador sempre aberto e logado, ou um serviço rodando o tempo
+todo com bastante memória. Como você falou pra não depender de servidor
+nenhum, o jeito que sobra sem servidor é esse: ela deixa tudo pronto com
+um link, e o toque final (apertar enviar) é seu. Dá pra automatizar o
+envio também depois, se um dia topar manter um Mac ligado sempre ou pagar
+um servidor pra isso.
 
 **Ainda não tem — e por quê:**
-- **WhatsApp:** dá pra automatizar (existe até uma técnica já usada num
-  outro projeto nosso, o Portal Parcelamento), mas rodar isso de forma
-  confiável precisa de um navegador sempre aberto e logado — ou um
-  serviço rodando continuamente com bastante memória, que o plano grátis
-  do Render não aguenta bem. Antes de construir, preciso que você decida
-  ONDE isso roda: seu Mac ligado o tempo todo, ou um servidor pago.
 - **Disparar as automações do Painel BKO (Crivo, Portal Parcelamento):**
   tecnicamente dá, mas exigiria ou guardar o seu login do Painel BKO
   aqui no backend, ou uma chave sensível do Supabase — não quis tomar

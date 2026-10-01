@@ -67,7 +67,17 @@ def perguntar_jarvis(texto):
         timeout=60,
     )
     resp.raise_for_status()
-    return resp.json()["resposta"]
+    corpo = resp.json()
+    return corpo["resposta"], corpo.get("acoes") or []
+
+
+def executar_acoes(acoes):
+    # Hoje só existe "abrir_url" (ex: WhatsApp com a mensagem pronta,
+    # pra você conferir e enviar) — `open` é o comando nativo do macOS
+    # que abre qualquer link com o app certo, igual dar dois cliques.
+    for acao in acoes:
+        if acao.get("tipo") == "abrir_url" and acao.get("url"):
+            subprocess.run(["open", acao["url"]])
 
 
 def main():
@@ -90,9 +100,10 @@ def main():
                 continue
             print(f"Você: {texto}")
 
-            resposta = perguntar_jarvis(texto)
+            resposta, acoes = perguntar_jarvis(texto)
             print(f"Márcia: {resposta}")
             falar(resposta)
+            executar_acoes(acoes)
         except requests.HTTPError as err:
             print(f"Erro de rede: {err}")
         finally:

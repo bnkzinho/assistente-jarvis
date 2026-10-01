@@ -31,6 +31,30 @@ Não precisa instalar nenhum app — só montar um Atalho no app **Atalhos**
 
 4. Pronto — toca em **Concluído**.
 
+## Deixar ela abrir o WhatsApp pronto (opcional)
+
+Quando você pede pra ela mandar uma mensagem no WhatsApp, o backend
+devolve um link pronto (com o número e o texto já preenchidos) — só
+falta o Atalho abrir esse link. Adiciona mais essas ações, depois da
+"Falar Texto" (passo d acima):
+
+   **e) Obter Valor de Dicionário**
+   - Obter o valor de: `acoes`
+   - Em: **Conteúdo de URL** (a mesma da ação b)
+
+   **f) Se (If)**
+   - Condição: a ação anterior **tem algum valor** / não está vazia
+
+   **g) (dentro do Se) Obter Valor de Dicionário**
+   - Obter o valor de: `url`
+   - Em: primeiro item de **acoes** (o Atalhos deixa escolher "Item 1")
+
+   **h) (dentro do Se) Abrir URLs**
+   - URLs: o valor obtido na ação g
+
+Isso abre o app do WhatsApp (ou o WhatsApp Web, se não tiver o app) já
+com a conversa e a mensagem prontas — você só confere e aperta enviar.
+
 ## Ativar só falando o nome dela
 
 Configurações do Atalho (os três pontinhos) → liga **"Adicionar à Siri"** →

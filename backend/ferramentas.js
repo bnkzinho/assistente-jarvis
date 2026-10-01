@@ -58,39 +58,72 @@ export const FERRAMENTAS = [
       required: ['para', 'assunto', 'corpo'],
     },
   },
+  {
+    name: 'abrir_whatsapp',
+    description: 'Deixa uma mensagem pronta no WhatsApp (Mac ou iPhone, o que o usuário estiver usando), já escrita, pra ele só conferir e apertar enviar — NÃO manda sozinha, é só um atalho. Use quando o usuário pedir pra mandar/escrever mensagem no WhatsApp pra alguém. Sempre confirme o número de telefone e o texto da mensagem antes de chamar (se ele só der um nome, sem número, pergunte o número — ainda não existe agenda de contatos).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        telefone: { type: 'string', description: 'número de telefone, com DDD (o país já é assumido como Brasil se não vier com código)' },
+        mensagem: { type: 'string' },
+      },
+      required: ['telefone', 'mensagem'],
+    },
+  },
 ]
 
+function normalizarTelefone(numero) {
+  const digitos = (numero || '').replace(/\D/g, '')
+  return digitos.length <= 11 ? `55${digitos}` : digitos
+}
+
+// Devolve { texto, acaoLocal? } — texto vira o tool_result pra Claude.
+// acaoLocal, quando existe (hoje só em abrir_whatsapp — o servidor não
+// tem como abrir nada na tela de ninguém, só o Mac/iPhone conseguem),
+// é repassado pro dispositivo no JSON de resposta, pra ele executar.
+// acaoLocal (quando existe) é o que o server.js repassa pro dispositivo
+// executar.
 export async function executarFerramenta(nome, input) {
   switch (nome) {
     case 'criar_nota': {
       const nota = criarNota(input.texto)
-      return `Anotado (id ${nota.id}): ${nota.texto}`
+      return { texto: `Anotado (id ${nota.id}): ${nota.texto}` }
     }
     case 'listar_notas': {
       const notas = listarNotas()
-      if (!notas.length) return 'Não tem nenhuma anotação guardada.'
-      return notas.map((n) => `[${n.id}] ${n.texto}`).join('\n')
+      if (!notas.length) return { texto: 'Não tem nenhuma anotação guardada.' }
+      return { texto: notas.map((n) => `[${n.id}] ${n.texto}`).join('\n') }
     }
     case 'apagar_nota': {
       const ok = apagarNota(input.id)
-      return ok ? 'Nota apagada.' : 'Não achei essa nota.'
+      return { texto: ok ? 'Nota apagada.' : 'Não achei essa nota.' }
     }
     case 'criar_lembrete': {
       const lembrete = criarLembrete(input.texto, input.quando_iso)
-      return `Lembrete marcado pra ${new Date(lembrete.quando).toLocaleString('pt-BR')}: ${lembrete.texto}`
+      return { texto: `Lembrete marcado pra ${new Date(lembrete.quando).toLocaleString('pt-BR')}: ${lembrete.texto}` }
     }
     case 'listar_lembretes': {
       const lembretes = listarLembretes()
-      if (!lembretes.length) return 'Não tem nenhum lembrete pendente.'
-      return lembretes
-        .map((l) => `[${l.id}] ${new Date(l.quando).toLocaleString('pt-BR')} — ${l.texto}`)
-        .join('\n')
+      if (!lembretes.length) return { texto: 'Não tem nenhum lembrete pendente.' }
+      return {
+        texto: lembretes
+          .map((l) => `[${l.id}] ${new Date(l.quando).toLocaleString('pt-BR')} — ${l.texto}`)
+          .join('\n'),
+      }
     }
     case 'enviar_email': {
       await enviarEmail(input)
-      return `E-mail enviado pra ${input.para}.`
+      return { texto: `E-mail enviado pra ${input.para}.` }
+    }
+    case 'abrir_whatsapp': {
+      const telefone = normalizarTelefone(input.telefone)
+      const url = `https://wa.me/${telefone}?text=${encodeURIComponent(input.mensagem)}`
+      return {
+        texto: 'Deixei a mensagem pronta no WhatsApp — é só conferir e apertar enviar.',
+        acaoLocal: { tipo: 'abrir_url', url },
+      }
     }
     default:
-      return `Ferramenta desconhecida: ${nome}`
+      return { texto: `Ferramenta desconhecida: ${nome}` }
   }
 }

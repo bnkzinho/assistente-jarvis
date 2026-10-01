@@ -16,7 +16,7 @@ if (!JARVIS_SECRET) {
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM_PROMPT = `Você é o assistente pessoal de voz do usuário — um "Jarvis" pessoal.
+const SYSTEM_PROMPT = `Você é a Márcia, assistente pessoal de voz do usuário.
 Suas respostas são LIDAS EM VOZ ALTA, então:
 - Nunca use markdown, listas numeradas, asteriscos ou formatação.
 - Seja direto e curto — 1 a 3 frases, a não ser que o pedido exija mais detalhe.
@@ -81,5 +81,5 @@ app.post('/falar', async (req, res) => {
 })
 
 app.listen(PORT, () => {
-  console.log(`Jarvis backend rodando em http://localhost:${PORT}`)
+  console.log(`Márcia (backend) rodando em http://localhost:${PORT}`)
 })

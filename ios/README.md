@@ -1,4 +1,4 @@
-# Jarvis no iPhone (Atalhos / Siri)
+# Márcia no iPhone (Atalhos / Siri)
 
 Não precisa instalar nenhum app — só montar um Atalho no app **Atalhos**
 (já vem no iPhone), em uns 5 minutos.
@@ -6,7 +6,7 @@ Não precisa instalar nenhum app — só montar um Atalho no app **Atalhos**
 ## Montar o Atalho
 
 1. Abre o app **Atalhos** → aba **Meus Atalhos** → **+** (novo atalho).
-2. Renomeia pra **Jarvis** (toca nos três pontinhos → nome).
+2. Renomeia pra **Márcia** (toca nos três pontinhos → nome).
 3. Adiciona essas ações, nessa ordem:
 
    **a) Ditar Texto**
@@ -31,18 +31,25 @@ Não precisa instalar nenhum app — só montar um Atalho no app **Atalhos**
 
 4. Pronto — toca em **Concluído**.
 
-## Deixar rápido de usar
+## Ativar só falando o nome dela
 
-- **Pela Siri:** Configurações do Atalho (os três pontinhos) → liga "Adicionar
-  à Siri" → grava uma frase, tipo "Ei Jarvis". Depois é só "Ei Siri, Jarvis"
-  e falar.
-- **Botão de Ação / Tela de Início** (iPhone com Botão de Ação, ou qualquer
-  modelo): adiciona o atalho lá pra abrir com um toque.
+Configurações do Atalho (os três pontinhos) → liga **"Adicionar à Siri"** →
+grava a frase **"Márcia"**. A partir daí é **"Ei Siri, Márcia"** e já pode
+falar — a Siri entende o nome dela como gatilho.
+
+(O "Ei Siri" na frente não dá pra tirar — é assim que todo atalho da Siri
+funciona no iPhone, não é uma limitação só da Márcia. Sem isso o iPhone
+precisaria ficar com o microfone sempre ligado ouvindo tudo o tempo todo,
+o que a Apple não permite pra apps/atalhos de terceiros.)
+
+Também dá pra adicionar o atalho na **Tela de Início** ou no **Botão de
+Ação** (se o modelo tiver), pra abrir com um toque sem precisar falar nada.
 
 ## Limitação da v1
 
-Não tem "sempre ouvindo" — você precisa abrir o atalho (ou chamar pela
-Siri) toda vez que quiser falar com ele. Um modo "sempre ligado" dá pra
-fazer depois, mas exige mais (um app de verdade rodando em segundo
-plano) — por enquanto esse é o jeito que funciona sem precisar programar
-e publicar um app na App Store.
+Fora isso, não tem "sempre ouvindo" — cada vez que quiser falar com ela,
+chama pela Siri (ou toca no atalho). Um modo "sempre ligado", sem nem
+precisar do "Ei Siri", dá pra fazer depois, mas exige um app de verdade
+(publicado ou instalado manualmente) rodando em segundo plano — por
+enquanto esse é o jeito que funciona sem programar e publicar um app na
+App Store.

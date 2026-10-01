@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Jarvis — cliente de voz pro Mac.
+Márcia — cliente de voz pro Mac.
 
 Aperta Enter pra começar a gravar, fala, aperta Enter de novo pra parar.
 O áudio vira texto (Whisper da OpenAI), o texto vai pro backend (que
@@ -71,7 +71,7 @@ def perguntar_jarvis(texto):
 
 
 def main():
-    print("Jarvis (Mac) — aperta Enter pra falar com ele. Ctrl+C pra sair.\n")
+    print("Márcia (Mac) — aperta Enter pra falar com ela. Ctrl+C pra sair.\n")
     while True:
         try:
             input("Aperta Enter pra gravar...")
@@ -91,7 +91,7 @@ def main():
             print(f"Você: {texto}")
 
             resposta = perguntar_jarvis(texto)
-            print(f"Jarvis: {resposta}")
+            print(f"Márcia: {resposta}")
             falar(resposta)
         except requests.HTTPError as err:
             print(f"Erro de rede: {err}")

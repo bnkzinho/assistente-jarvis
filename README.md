@@ -1,4 +1,4 @@
-# Jarvis — assistente pessoal com voz
+# Márcia — assistente pessoal com voz
 
 v1: conversar por voz com a Claude, pelo Mac e pelo iPhone. É a base — notas,
 lembretes, e-mail, WhatsApp e automações entram por cima disso depois.
@@ -27,7 +27,7 @@ Precisa de uma URL pública (o iPhone não alcança seu Mac local).
    - `JARVIS_SECRET` — inventa uma senha longa qualquer (ex: gerada em
      [1password.com/password-generator](https://1password.com/password-generator))
    - `CLAUDE_MODEL` — pode deixar `claude-sonnet-5`
-5. Deploy. Guarda a URL que o Render te dá (tipo `https://jarvis-xxxx.onrender.com`).
+5. Deploy. Guarda a URL que o Render te dá (tipo `https://marcia-xxxx.onrender.com`).
 
 ## 2. Configurar o Mac
 
@@ -41,7 +41,7 @@ cp .env.example .env
 python3 jarvis.py
 ```
 
-Aperta Enter, fala, aperta Enter de novo — ele responde em voz.
+Aperta Enter, fala, aperta Enter de novo — ela responde em voz.
 
 **Por que precisa de uma chave da OpenAI também:** a Claude não transcreve
 áudio — só texto. O Whisper (OpenAI) faz só essa parte (ouvir e virar

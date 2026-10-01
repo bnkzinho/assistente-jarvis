@@ -30,6 +30,8 @@ JARVIS_SECRET = os.environ.get("JARVIS_SECRET", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 VOZ = os.environ.get("JARVIS_VOZ", "Luciana")  # voz em pt-BR já instalada no macOS
 ESPERA_WHATSAPP_SEGUNDOS = float(os.environ.get("ESPERA_WHATSAPP_SEGUNDOS", "3.5"))
+ESPERA_RSA_ABRIR_SEGUNDOS = float(os.environ.get("ESPERA_RSA_ABRIR_SEGUNDOS", "2"))
+ESPERA_RSA_PASSO_SEGUNDOS = float(os.environ.get("ESPERA_RSA_PASSO_SEGUNDOS", "0.8"))
 
 if not BACKEND_URL:
     sys.exit("Falta BACKEND_URL no .env — veja .env.example.")
@@ -95,11 +97,88 @@ def enviar_whatsapp_mac(telefone, mensagem):
     ])
 
 
+def _escapar_applescript(texto):
+    return texto.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _osascript(script):
+    subprocess.run(["osascript", "-e", script])
+
+
+def abrir_rsa_e_copiar_codigo(matricula):
+    # MELHOR ESFORÇO — nunca vimos o app RSA de verdade (nome, botões e
+    # layout exatos), então isso é uma automação genérica: tenta clicar
+    # no primeiro botão da janela (pra abrir a lista de matrículas) e
+    # depois procura, em TODOS os elementos da tela, um cujo nome ou
+    # valor contenha o texto da matrícula falada, clicando nele. Se não
+    # achar nada com esse nome, a automação simplesmente não clica em
+    # nada (sem erro visível) — por isso é importante CONFERIR na tela
+    # se selecionou a matrícula certa antes de usar o código.
+    #
+    # Se isso não funcionar direito no seu Mac, me manda o que aconteceu
+    # (ou mesmo um print da tela do RSA) que eu ajusto os seletores —
+    # mesmo processo que usamos pras telas do Portal Parcelamento.
+    subprocess.run(["open", "-a", "RSA"])
+    time.sleep(ESPERA_RSA_ABRIR_SEGUNDOS)
+
+    _osascript('''
+    tell application "System Events"
+      tell process "RSA"
+        set frontmost to true
+        try
+          click button 1 of window 1
+        on error
+          try
+            click pop up button 1 of window 1
+          on error
+            try
+              click menu button 1 of window 1
+            end try
+          end try
+        end try
+      end tell
+    end tell
+    ''')
+    time.sleep(ESPERA_RSA_PASSO_SEGUNDOS)
+
+    alvo = _escapar_applescript(matricula)
+    _osascript(f'''
+    tell application "System Events"
+      tell process "RSA"
+        repeat with el in (entire contents of window 1)
+          set nomeEl to ""
+          set valorEl to ""
+          try
+            set nomeEl to (name of el as string)
+          end try
+          try
+            set valorEl to (value of el as string)
+          end try
+          if (nomeEl contains "{alvo}") or (valorEl contains "{alvo}") then
+            click el
+            exit repeat
+          end if
+        end repeat
+      end tell
+    end tell
+    ''')
+    time.sleep(ESPERA_RSA_PASSO_SEGUNDOS)
+
+    _osascript('''
+    tell application "RSA" to activate
+    tell application "System Events" to keystroke "c" using command down
+    ''')
+
+
 def executar_acoes(acoes):
     for acao in acoes:
         tipo = acao.get("tipo")
         if tipo == "whatsapp" and acao.get("telefone") and acao.get("mensagem"):
             enviar_whatsapp_mac(acao["telefone"], acao["mensagem"])
+        elif tipo == "rsa_p2b" and acao.get("matricula"):
+            abrir_rsa_e_copiar_codigo(acao["matricula"])
+            if acao.get("url"):
+                subprocess.run(["open", acao["url"]])
         elif tipo == "abrir_url" and acao.get("url"):
             # `open` é o comando nativo do macOS que abre qualquer link
             # com o app certo, igual dar dois cliques.

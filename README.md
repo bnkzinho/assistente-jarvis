@@ -126,6 +126,9 @@ verdade.
 - Painel BKO: ver contestações pendentes, aprovar/recusar (com
   confirmação antes), ver ranking, listar cust codes, ver reagendamentos
   da equipe, listar BKOs, disparar consulta de CNPJ no Crivo
+- RSA + P2B (só no Mac): abre o app RSA, tenta selecionar a matrícula
+  falada, copia o código gerado, e abre o login do P2B — **melhor
+  esforço** (veja o aviso logo abaixo)
 
 **Por que no iPhone ela não manda sozinha:** o app Atalhos (Siri) não tem
 nenhum jeito de simular um toque no botão Enviar — só o Mac permite isso,
@@ -134,12 +137,23 @@ WhatsApp Desktop como se fosse você apertando Enter. Não é falta de
 esforço, é uma parede real do iPhone.
 
 **Permissão necessária no Mac (só na primeira vez):** quando ela tentar
-mandar a primeira mensagem, o macOS vai pedir permissão de
-**Acessibilidade** pro Terminal (ou o app que você usa pra rodar o
-`jarvis.py`) controlar outros aplicativos — sem autorizar isso, o
-WhatsApp abre mas não envia sozinho (segue funcionando o resto todo
-normal). Autoriza em **Ajustes do Sistema → Privacidade e Segurança →
-Acessibilidade**.
+mandar a primeira mensagem (ou abrir o RSA), o macOS vai pedir permissão
+de **Acessibilidade** pro Terminal (ou o app que você usa pra rodar o
+`jarvis.py`) controlar outros aplicativos — sem autorizar isso, os apps
+abrem mas ela não consegue clicar/digitar sozinha neles (segue
+funcionando o resto todo normal). Autoriza em **Ajustes do Sistema →
+Privacidade e Segurança → Acessibilidade**.
+
+**Sobre o RSA + P2B — é mesmo "melhor esforço":** eu nunca vi o app RSA
+nem a tela de login do P2B de verdade, então essa automação (achar e
+clicar na matrícula certa) é genérica — procura, em TUDO que aparece na
+tela do RSA, um botão/texto que contenha o nome/número que você falou, e
+clica nele. Pode não achar nada (aí não clica em nada, sem avisar) ou
+achar a coisa errada. **Sempre confere na tela se selecionou a matrícula
+certa antes de usar o código copiado.** Ela também não preenche usuário
+nem senha no P2B sozinha — só deixa a tela de login aberta e o código no
+clipboard, pra você colar. Se não funcionar bem no seu Mac, me conta o
+que aconteceu (ou manda um print) que eu ajusto.
 
 **Ainda não tem — e por quê:**
 - **Mais ações no Painel BKO** (ex: ativar/desativar um BKO, mudar a

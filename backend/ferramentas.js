@@ -131,6 +131,15 @@ export const FERRAMENTAS = [
       required: ['cnpj'],
     },
   },
+  {
+    name: 'abrir_rsa_p2b',
+    description: 'SÓ FUNCIONA NO MAC (dispositivo "mac"). Abre o app RSA, seleciona a matrícula pedida (clica na opção da lista que combina com o nome/número falado), copia o código gerado pra área de transferência, e abre a tela de login do P2B (Phoenix2Business) no navegador. NÃO digita usuário nem senha sozinha — isso é melhor esforço contra um app que nunca foi visto/testado ao vivo, então pode falhar em selecionar a matrícula certa; se o usuário disser que abriu na matrícula errada ou não copiou nada, avise que essa parte ainda precisa de ajuste. Se o dispositivo não for "mac", diga que essa ferramenta só funciona no Mac.',
+    input_schema: {
+      type: 'object',
+      properties: { matricula: { type: 'string', description: 'nome/número da matrícula como o usuário falou' } },
+      required: ['matricula'],
+    },
+  },
 ]
 
 function normalizarTelefone(numero) {
@@ -227,6 +236,13 @@ export async function executarFerramenta(nome, input, dispositivo) {
       if (!resultado.pronto) return { texto: 'Mandei pra fila do Crivo, mas ainda não veio resposta — tenta perguntar de novo daqui a pouco.' }
       if (resultado.erro) return { texto: `Deu erro no Crivo: ${resultado.erro}` }
       return { texto: `Resultado do Crivo: ${resultado.resultado}.` }
+    }
+    case 'abrir_rsa_p2b': {
+      if (dispositivo !== 'mac') return { texto: 'Isso só funciona no Mac, por enquanto.' }
+      return {
+        texto: `Abrindo o RSA na matrícula ${input.matricula} e o P2B — confere se selecionou certo, o código já deve estar copiado pra você colar.`,
+        acaoLocal: { tipo: 'rsa_p2b', matricula: input.matricula, url: 'https://phoenix2businesspcs.timbrasil.com.br/phoenix2Business/' },
+      }
     }
     default:
       return { texto: `Ferramenta desconhecida: ${nome}` }

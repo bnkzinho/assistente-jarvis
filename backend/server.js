@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import express from 'express'
 import cors from 'cors'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas.js'
 import { iniciarChecadorDeLembretes } from './lembretes.js'
 
@@ -11,17 +11,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const PORT = process.env.PORT || 3000
 const JARVIS_SECRET = process.env.JARVIS_SECRET
-const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5'
+const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 const MAX_RODADAS_FERRAMENTA = 4
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn('ANTHROPIC_API_KEY não definida — configure no .env (veja .env.example).')
+if (!process.env.GROQ_API_KEY) {
+  console.warn('GROQ_API_KEY não definida — configure no .env (veja .env.example).')
 }
 if (!JARVIS_SECRET) {
   console.warn('JARVIS_SECRET não definida — qualquer pessoa que achar a URL poderia usar o assistente. Configure no .env.')
 }
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+// Groq é gratuito e usa o mesmo formato de API da OpenAI — por isso o
+// cliente é o pacote "openai", só apontado pro endereço do Groq.
+const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1' })
+
+// As ferramentas (ferramentas.js) são descritas no formato da Anthropic
+// — converte pro formato que a API do Groq/OpenAI espera.
+const FERRAMENTAS_GROQ = FERRAMENTAS.map((f) => ({
+  type: 'function',
+  function: { name: f.name, description: f.description, parameters: f.input_schema },
+}))
 
 function montarSystemPrompt() {
   const agora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full', timeStyle: 'short' })
@@ -52,8 +61,10 @@ Suas respostas são LIDAS EM VOZ ALTA, então:
 }
 
 // Histórico em memória, por dispositivo — reseta se o servidor reiniciar.
-// Guarda os blocos "crus" (inclusive tool_use/tool_result), do jeito que
-// a API da Anthropic espera de volta numa próxima chamada.
+// Guarda as mensagens "cruas" (inclusive as de tool_calls/tool), do jeito
+// que a API da Groq/OpenAI espera de volta numa próxima chamada. O
+// system prompt NÃO fica guardado aqui — é montado na hora (tem a data/
+// hora atual) e colocado na frente a cada chamada.
 const HISTORICO_MAX = 20
 const historicos = new Map()
 
@@ -63,20 +74,12 @@ function pegarHistorico(dispositivo) {
 }
 
 // Guarda só a ÚLTIMA troca (pergunta + resposta) de cada dispositivo —
-// separado do histórico "cru" da Claude — pra tela (tela/index.html)
-// poder mostrar o que ela acabou de dizer sem expor a conversa inteira.
+// separado do histórico "cru" — pra tela (tela/index.html) poder mostrar
+// o que ela acabou de dizer sem expor a conversa inteira.
 const ultimasMensagens = new Map()
 
-function textoFinal(blocosDeConteudo) {
-  return blocosDeConteudo
-    .filter((bloco) => bloco.type === 'text')
-    .map((bloco) => bloco.text)
-    .join(' ')
-    .trim()
-}
-
-// Deixa a Claude usar ferramentas em rodadas sucessivas (ex: criar um
-// lembrete, ver o resultado, só então responder em texto) até ela parar
+// Deixa o modelo usar ferramentas em rodadas sucessivas (ex: criar um
+// lembrete, ver o resultado, só então responder em texto) até ele parar
 // de pedir ferramenta ou até o limite de rodadas — evita loop infinito
 // se algo der errado. Além do texto final, junta as "ações locais" que
 // o dispositivo (Mac/iPhone) precisa executar (ex: abrir uma URL do
@@ -85,33 +88,31 @@ async function responderComFerramentas(historico, dispositivo) {
   const acoes = []
 
   for (let rodada = 0; rodada < MAX_RODADAS_FERRAMENTA; rodada++) {
-    const resposta = await anthropic.messages.create({
+    const resposta = await groq.chat.completions.create({
       model: MODEL,
       max_tokens: 500,
-      system: montarSystemPrompt(),
-      tools: FERRAMENTAS,
-      messages: historico,
+      messages: [{ role: 'system', content: montarSystemPrompt() }, ...historico],
+      tools: FERRAMENTAS_GROQ,
     })
 
-    historico.push({ role: 'assistant', content: resposta.content })
+    const mensagem = resposta.choices[0].message
+    historico.push(mensagem)
 
-    if (resposta.stop_reason !== 'tool_use') {
-      return { texto: textoFinal(resposta.content), acoes }
+    if (resposta.choices[0].finish_reason !== 'tool_calls' || !mensagem.tool_calls) {
+      return { texto: (mensagem.content || '').trim(), acoes }
     }
 
-    const chamadas = resposta.content.filter((b) => b.type === 'tool_use')
-    const resultados = []
-    for (const chamada of chamadas) {
+    for (const chamada of mensagem.tool_calls) {
       let saida
       try {
-        saida = await executarFerramenta(chamada.name, chamada.input, dispositivo)
+        const input = JSON.parse(chamada.function.arguments || '{}')
+        saida = await executarFerramenta(chamada.function.name, input, dispositivo)
       } catch (err) {
         saida = { texto: `Erro ao executar: ${err.message}` }
       }
       if (saida.acaoLocal) acoes.push(saida.acaoLocal)
-      resultados.push({ type: 'tool_result', tool_use_id: chamada.id, content: saida.texto })
+      historico.push({ role: 'tool', tool_call_id: chamada.id, content: saida.texto })
     }
-    historico.push({ role: 'user', content: resultados })
   }
   return { texto: 'Deu uma confusão tentando fazer isso em várias etapas — tenta de novo, mais direto?', acoes }
 }
@@ -143,7 +144,7 @@ app.post('/falar', async (req, res) => {
     ultimasMensagens.set(dispositivo, { texto, resposta: textoResposta, quando: new Date().toISOString() })
     res.json({ resposta: textoResposta, acoes })
   } catch (err) {
-    console.error('Erro ao chamar a Claude:', err)
+    console.error('Erro ao chamar o Groq:', err)
     res.status(500).json({ erro: 'falha ao gerar resposta' })
   }
 })

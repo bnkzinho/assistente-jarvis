@@ -9,7 +9,7 @@ supervisor (ver contestações, aprovar/recusar, ranking, cust codes).
 
 ```
 Mac (jarvis.py)  ──┐
-                    ├──► backend (Node/Express) ──► Claude (com ferramentas:
+                    ├──► backend (Node/Express) ──► Groq/Llama (com ferramentas:
 iPhone (Atalho)  ──┘      notas, lembretes, e-mail,        ──► resposta + ação
                            WhatsApp, Painel BKO)                   │
                                      │                             └──► Mac/iPhone abre o
@@ -18,12 +18,13 @@ iPhone (Atalho)  ──┘      notas, lembretes, e-mail,        ──► respo
                                      └──► login de supervisor ──► Supabase do Painel BKO
 ```
 
-Um backend só, publicado uma vez, atende os dois dispositivos. A Claude
-decide sozinha, pela conversa, quando precisa usar uma ferramenta (criar
-nota, agendar lembrete, mandar e-mail, abrir WhatsApp) em vez de só
-responder em texto. Pra WhatsApp, o backend nunca manda nada sozinho —
-ele só devolve um link pronto (`wa.me/...`), e quem abre esse link é o
-próprio Mac ou iPhone, que é quem tem o WhatsApp instalado de verdade.
+Um backend só, publicado uma vez, atende os dois dispositivos. Quem
+"pensa" e responde é o **Groq** (API gratuita, roda o modelo Llama) —
+ele decide sozinho, pela conversa, quando precisa usar uma ferramenta
+(criar nota, agendar lembrete, mandar e-mail, abrir WhatsApp) em vez de
+só responder em texto. Pra WhatsApp, o backend nunca manda nada sozinho
+— ele só devolve um link pronto (`wa.me/...`), e quem abre esse link é
+o próprio Mac ou iPhone, que é quem tem o WhatsApp instalado de verdade.
 
 ## 1. Publicar o backend
 
@@ -34,10 +35,11 @@ Precisa de uma URL pública (o iPhone não alcança seu Mac local).
 3. Build command: `npm install` — Start command: `npm start`.
 4. Em **Environment**, adiciona as variáveis (veja `backend/.env.example` pra
    todas — as três primeiras são obrigatórias, o resto é opcional):
-   - `ANTHROPIC_API_KEY` — sua chave da Anthropic ([console.anthropic.com](https://console.anthropic.com))
+   - `GROQ_API_KEY` — cria uma conta grátis em [console.groq.com](https://console.groq.com)
+     (sem cartão de crédito) → **API Keys** → **Create API Key**
    - `JARVIS_SECRET` — inventa uma senha longa qualquer (ex: gerada em
      [1password.com/password-generator](https://1password.com/password-generator))
-   - `CLAUDE_MODEL` — pode deixar `claude-sonnet-5`
+   - `GROQ_MODEL` — pode deixar `llama-3.3-70b-versatile`
    - `NTFY_TOPIC` — pra lembretes virarem notificação de verdade (veja passo 4 abaixo)
    - `EMAIL_USER` / `EMAIL_APP_PASSWORD` — pra ela poder mandar e-mail (veja passo 5)
    - `PAINEL_BKO_USUARIO` / `PAINEL_BKO_SENHA` — pra ela acessar o Painel BKO (veja passo 6)
@@ -70,7 +72,7 @@ seção "A tela" mais abaixo).
 Google (biblioteca `SpeechRecognition`) — sem chave, sem cadastro, sem
 custo. A qualidade é um pouco abaixo do Whisper da OpenAI pra frases
 complexas, mas funciona bem pra comandos do dia a dia. Quem responde de
-verdade continua sendo a Claude, lá no backend — isso só transforma sua
+verdade continua sendo o Groq, lá no backend — isso só transforma sua
 voz em texto antes de mandar pra ela.
 
 **Pra abrir só falando "Ei Siri, abre Márcia" (sem rodar o jarvis.py):**
